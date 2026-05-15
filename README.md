@@ -1,7 +1,7 @@
 
 # Omer Sanitation Schedule Widget 🚛
 
-A custom, lightweight web widget designed for the Local Council of Omer (מועצה מקומית עומר). It allows residents to easily search for their address to get accurate garbage and yard waste collection schedules.
+A custom, lightweight web widget designed for the Local Council of Omer. It allows residents to easily search for their address to get accurate garbage and yard waste collection schedules.
 
 Designed specifically to be drop-in ready for **WordPress / Elementor** via the Custom HTML Widget, requiring absolutely zero external dependencies.
 
