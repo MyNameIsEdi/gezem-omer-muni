@@ -1,0 +1,403 @@
+<style>
+    .omer-sanitation-app {
+        font-family: inherit;
+        background-color: #ffffff;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        max-width: 550px;
+        margin: 0 auto;
+        border: 1px solid #eee;
+    }
+    .omer-sanitation-app h2 {
+        color: #085c34;
+        margin-top: 0;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: bold;
+    }
+    .omer-sanitation-app .search-box {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    
+    /* עיצוב מעטפת ההשלמה האוטומטית */
+    .autocomplete-wrapper {
+        flex: 1;
+        position: relative;
+    }
+    
+    .omer-sanitation-app input {
+        width: 100%;
+        padding: 14px;
+        font-size: 16px;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        background-color: #fafafa;
+        color: #333;
+        transition: border-color 0.3s;
+        box-sizing: border-box;
+    }
+    .omer-sanitation-app input:focus {
+        border-color: #085c34;
+        outline: none;
+    }
+    .omer-sanitation-app button {
+        padding: 14px 28px;
+        font-size: 16px;
+        cursor: pointer;
+        background-color: #085c34;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        transition: background-color 0.3s ease, transform 0.1s;
+        white-space: nowrap;
+    }
+    .omer-sanitation-app button:hover {
+        background-color: #064527;
+    }
+    .omer-sanitation-app button:active {
+        transform: scale(0.97);
+    }
+
+    /* עיצוב התפריט הנפתח (השלמה אוטומטית) */
+    .autocomplete-items {
+        position: absolute;
+        border: 1px solid #d4d4d4;
+        border-bottom: none;
+        border-top: none;
+        z-index: 99;
+        top: 100%;
+        left: 0;
+        right: 0;
+        border-radius: 0 0 8px 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .autocomplete-items div {
+        padding: 12px;
+        cursor: pointer;
+        background-color: #fff;
+        border-bottom: 1px solid #d4d4d4;
+        font-size: 16px;
+        transition: background-color 0.2s;
+    }
+    .autocomplete-items div:hover {
+        background-color: #e9e9e9;
+    }
+    .autocomplete-active {
+        background-color: #f5e1a9 !important;
+        color: #085c34;
+        font-weight: bold;
+    }
+
+    /* עיצוב התוצאות */
+    .omer-sanitation-app #wasteResult {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    .result-card {
+        background-color: #f5e1a9;
+        border-right: 6px solid #085c34;
+        padding: 20px;
+        color: #222;
+    }
+    .result-card h3 {
+        color: #085c34;
+        margin: 0 0 15px 0;
+        border-bottom: 1px solid rgba(8, 92, 52, 0.2);
+        padding-bottom: 10px;
+    }
+    .data-row {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 15px;
+        font-size: 16px;
+        line-height: 1.4;
+    }
+    .data-icon {
+        font-size: 24px;
+        margin-left: 10px;
+        background: white;
+        padding: 5px;
+        border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        min-width: 34px;
+        text-align: center;
+    }
+    .rules-box {
+        background-color: rgba(255,255,255,0.6);
+        border: 1px dashed #085c34;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 15px;
+        font-size: 14px;
+    }
+    .rules-box ul {
+        margin: 0;
+        padding-right: 20px;
+    }
+    .rules-box li {
+        margin-bottom: 5px;
+    }
+    .error-card {
+        background-color: #fde8e8;
+        border-right: 6px solid #e76246;
+        padding: 15px 20px;
+        color: #e76246;
+        font-size: 17px;
+        font-weight: bold;
+    }
+</style>
+
+<div class="omer-sanitation-app" dir="rtl">
+    <h2>ימי פינוי אשפה וגזם - מועצה מקומית עומר</h2>
+    
+    <div class="search-box">
+        <div class="autocomplete-wrapper">
+            <input id="smartInput" type="text" placeholder="הכנס שם רחוב ומספר בית (למשל: תפוז 30)" autocomplete="off">
+        </div>
+        <button onclick="executeSearch()">חפש</button>
+    </div>
+
+    <div id="wasteResult" style="display: none;"></div>
+</div>
+
+<script>
+const districtDays = {
+  "א'": { garbage: "שני, רביעי ושישי", yardOut: "ראשון", yardCollect: "שני" },
+  "ב'": { garbage: "שני, רביעי ושישי", yardOut: "שני", yardCollect: "שלישי" },
+  "ג'": { garbage: "ראשון, שלישי וחמישי", yardOut: "שלישי", yardCollect: "רביעי" },
+  "ד'": { garbage: "ראשון, שלישי וחמישי", yardOut: "רביעי", yardCollect: "חמישי" }
+};
+
+const streets = {
+  "אפרסמון": "א'", "דקל": "א'", "חורשה": "א'", "חיננית": "א'", "חלמונית": "א'", "חרצית": "א'",
+  "לבונה": "א'", "לוטם": "א'", "לילך": "א'", "לימונית": "א'", "מור": "א'", "נורית": "א'",
+  "סביון": "א'", "סחלב": "א'", "סיגלית": "א'", "סייפון": "א'", "סייפן": "א'", "סיתוונית": "א'", "פעמונית": "א'",
+  "פרג": "א'", "צבעוני": "א'", "ציפורן": "א'", "קינמון": "א'", "שושן": "א'", "תפוז": "א'", "תפוח": "א'",
+  "חבצלת": "א'", "ליבנה": "א'", 
+  "אגוז": "ב'", "אגמון": "ב'", "אדמונית": "ב'", "אוכמנית": "ב'", "אירוס": "ב'", "אלה": "ב'",
+  "ברקן": "ב'", "דבורנית": "ב'", "דגנית": "ב'", "דרדר": "ב'", "חצב": "ב'", "חרוב": "ב'",
+  "כיסופים": "ב'", "מתחם כיסופים": "ב'", "כלנית": "ב'", "מרגנית": "ב'", "נרקיס": "ב'",
+  "סירפד": "ב'", "עדעד": "ב'", "ערבה": "ב'", "פארק הייטק": "ב'", "פארק ההייטק": "ב'", "אזור תעשייה": "ב'", "אזור תעשיה": "ב'", "צלף": "ב'", "צפצפה": "ב'",
+  "צרצר": "ב'", "קידה": "ב'", "רקפת": "ב'", "שקד": "ב'", "תאנה": "ב'",
+  "ארז": "ג'", "אשל": "ג'", "ברוש": "ג'", "דפנה": "ג'", "המרכז המסחרי": "ג'", "מרכז מסחרי": "ג'", "הרדוף": "ג'",
+  "משעול אתרוג": "ג'", "אתרוג": "ג'", "משעול דולב": "ג'", "דולב": "ג'", "משעול מורן": "ג'",
+  "מורן": "ג'", "משעול סיסם": "ג'", "סיסם": "ג'", "פלפלון": "ג'", "פילפלון": "ג'", "צבר": "ג'", "רותם": "ג'",
+  "שיקמה": "ג'", "השקמה": "ג'", "תמר": "ג'",
+  "אטד": "ד'", "אלון": "ד'", "אשוח": "ד'", "גני עומר": "ד'", "הגפן": "ד'", "גפן": "ד'",
+  "הדס": "ד'", "הדר": "ד'", "הזית": "ד'", "זית": "ד'", "הכרם": "ד'", "כרם": "ד'",
+  "השיטה": "ד'", "שיטה": "ד'", "יערה": "ד'", "כליל החורש": "ד'", "לבנה": "ד'", "סיגלון": "ד'",
+  "צאלה": "ד'", "רימון": "ד'", "שיזף": "ד'", "תאשור": "ד'", "תדהר": "ד'",
+  "אורן": [ { min: 1, max: 37, district: "ג'" }, { min: 38, max: 999, district: "ד'" } ],
+  "אקליפטוס": [ { min: 1, max: 124, district: "ב'" }, { min: 125, max: 999, district: "א'" } ]
+};
+
+const streetNamesArr = Object.keys(streets).sort((a, b) => a.localeCompare(b, 'he'));
+
+/* מנוע השלמה אוטומטית מותאם אישית (Custom Autocomplete) */
+function autocomplete(inp, arr) {
+  let currentFocus;
+  
+  inp.addEventListener("input", function(e) {
+      let a, b, i, val = this.value;
+      closeAllLists();
+      
+      // מחלץ רק את האותיות לטובת חיפוש הרחוב (מתעלם ממספרים שהוקלדו)
+      let searchStr = val.replace(/[0-9]/g, '').trim();
+      if (!searchStr) { return false;}
+      
+      currentFocus = -1;
+      a = document.createElement("DIV");
+      a.setAttribute("id", this.id + "autocomplete-list");
+      a.setAttribute("class", "autocomplete-items");
+      this.parentNode.appendChild(a);
+      
+      let matches = 0;
+      for (i = 0; i < arr.length; i++) {
+        // בודק אם המחרוזת נמצאת בתוך שם הרחוב
+        if (arr[i].includes(searchStr)) {
+          matches++;
+          if(matches > 6) continue; // מציג עד 6 תוצאות כדי לא להעמיס
+          
+          b = document.createElement("DIV");
+          let matchIndex = arr[i].indexOf(searchStr);
+          
+          // בונה את הטקסט ומדגיש את החלק התואם
+          b.innerHTML = arr[i].substring(0, matchIndex);
+          b.innerHTML += "<strong style='color:#085c34;'>" + arr[i].substring(matchIndex, matchIndex + searchStr.length) + "</strong>";
+          b.innerHTML += arr[i].substring(matchIndex + searchStr.length);
+          b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+          
+          // מה קורה כשלוחצים על הצעה
+          b.addEventListener("click", function(e) {
+              let selectedStreet = this.getElementsByTagName("input")[0].value;
+              let currentNumbers = inp.value.replace(/[^\d]/g, ''); // שומר את המספר אם הוקלד
+              inp.value = selectedStreet + (currentNumbers ? " " + currentNumbers : " ");
+              closeAllLists();
+              inp.focus(); // מחזיר פוקוס כדי שהתושב יוכל להקליד מספר בית
+          });
+          a.appendChild(b);
+        }
+      }
+  });
+
+  // ניווט במקלדת (חיצים ואנטר)
+  inp.addEventListener("keydown", function(e) {
+      let x = document.getElementById(this.id + "autocomplete-list");
+      if (x) x = x.getElementsByTagName("div");
+      if (e.keyCode == 40) { // חץ למטה
+        currentFocus++;
+        addActive(x);
+      } else if (e.keyCode == 38) { // חץ למעלה
+        currentFocus--;
+        addActive(x);
+      } else if (e.keyCode == 13) { // אנטר
+        e.preventDefault();
+        if (currentFocus > -1) {
+          if (x) x[currentFocus].click();
+        } else {
+          executeSearch(); // אם לא נבחרה הצעה מהרשימה, בצע חיפוש רגיל
+        }
+      }
+  });
+
+  function addActive(x) {
+    if (!x) return false;
+    removeActive(x);
+    if (currentFocus >= x.length) currentFocus = 0;
+    if (currentFocus < 0) currentFocus = (x.length - 1);
+    x[currentFocus].classList.add("autocomplete-active");
+  }
+
+  function removeActive(x) {
+    for (let i = 0; i < x.length; i++) {
+      x[i].classList.remove("autocomplete-active");
+    }
+  }
+
+  function closeAllLists(elmnt) {
+    let x = document.getElementsByClassName("autocomplete-items");
+    for (let i = 0; i < x.length; i++) {
+      if (elmnt != x[i] && elmnt != inp) {
+        x[i].parentNode.removeChild(x[i]);
+      }
+    }
+  }
+
+  // סגירת הרשימה בלחיצה מחוץ אליה
+  document.addEventListener("click", function (e) {
+      closeAllLists(e.target);
+  });
+}
+
+// הפעלת ההשלמה האוטומטית על שדה החיפוש
+autocomplete(document.getElementById("smartInput"), streetNamesArr);
+
+// לוגיקת החיפוש החכמה
+function executeSearch() {
+  const resultDiv = document.getElementById('wasteResult');
+  let rawInput = document.getElementById('smartInput').value.trim();
+  
+  if (!rawInput) {
+    resultDiv.style.display = 'none';
+    return;
+  }
+
+  let cleanInput = rawInput.replace(/^רחוב\s+/, ""); 
+  const match = cleanInput.match(/^([^\d]+)\s*(\d+)?/);
+  
+  if (!match) {
+      showError(resultDiv, "אנא הזן שם רחוב חוקי.");
+      return;
+  }
+
+  let streetName = match[1].trim();
+  let houseNumber = match[2] ? parseInt(match[2], 10) : null;
+
+  const districtData = streets[streetName];
+
+  if (!districtData) {
+    showError(resultDiv, `לא מצאנו רחוב בשם "<strong>${streetName}</strong>". נסה לבדוק את האיות.`);
+    return;
+  }
+
+  let districtKey = null;
+
+  if (Array.isArray(districtData)) {
+      if (!houseNumber) {
+          showError(resultDiv, `רחוב <strong>${streetName}</strong> מחולק למספר אזורים. אנא הוסף גם את <strong>מספר הבית</strong> (לדוגמה: ${streetName} 40).`);
+          return;
+      } 
+      
+      const range = districtData.find(r => houseNumber >= r.min && houseNumber <= r.max);
+      if (range) {
+          districtKey = range.district;
+      } else {
+          showError(resultDiv, `המספר <strong>${houseNumber}</strong> לא נמצא בטווח המוכר ברחוב ${streetName}.`);
+          return;
+      }
+  } 
+  else {
+      districtKey = districtData; 
+  }
+
+  showSuccess(resultDiv, districtKey, streetName, houseNumber);
+}
+
+function showError(element, message) {
+  element.style.display = 'block';
+  element.innerHTML = `<div class="error-card">⚠️ ${message}</div>`;
+}
+
+function showSuccess(element, districtKey, streetName, houseNumber) {
+  const days = districtDays[districtKey];
+  let displayTitle = houseNumber ? `${streetName} ${houseNumber}` : streetName;
+
+  element.style.display = 'block';
+  element.innerHTML = `
+    <div class="result-card">
+        <h3>📍 רחוב ${displayTitle} (רובע ${districtKey})</h3>
+        
+        <div class="data-row">
+            <span class="data-icon">🗑️</span>
+            <div>
+                <strong>איסוף אשפה ביתית (פח ירוק):</strong><br>
+                ימי ${days.garbage}
+            </div>
+        </div>
+        
+        <div class="data-row">
+            <span class="data-icon">🌿</span>
+            <div>
+                <strong>מועד הוצאת גזם ופסולת גושית:</strong><br>
+                יום <strong>${days.yardOut}</strong> (החל מ-10:00 בבוקר)
+            </div>
+        </div>
+
+        <div class="data-row">
+            <span class="data-icon">🚜</span>
+            <div>
+                <strong>מועד איסוף ופינוי גזם (ע"י המועצה):</strong><br>
+                יום <strong>${days.yardCollect}</strong>
+            </div>
+        </div>
+
+        <div class="rules-box">
+            <strong>📋 הנחיות אגף שפ"ה:</strong>
+            <ul>
+                <li>גזם קל ועלים <strong>בשקיות בלבד</strong>. ענפים יש להניח בסמוך.</li>
+                <li>אין לחסום מדרכות וכבישים להולכי רגל.</li>
+                <li>יש להניח במקום נגיש למנוף (לא תחת עמודי חשמל).</li>
+                <li>ניתן להוציא עד 5 קוב. גינה חדשה/בנייה - באחריות התושב.</li>
+            </ul>
+        </div>
+    </div>
+  `;
+}
+</script>
