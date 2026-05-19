@@ -8,7 +8,7 @@ Designed specifically to be drop-in ready for **WordPress / Elementor** via the 
 🚀 **[Try the Live Demo Here](https://mynameisedi.github.io/gezem-omer-muni/)**
 
 
-<img src="screenshots/preview.jpeg" width="900" alt="open-qa home page" />
+<img src="preview.jpeg" width="900" alt="open-qa home page" />
 
 ## ✨ Features
 
