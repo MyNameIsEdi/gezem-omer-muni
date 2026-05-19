@@ -5,6 +5,11 @@ A custom, lightweight web widget designed for the Local Council of Omer. It allo
 
 Designed specifically to be drop-in ready for **WordPress / Elementor** via the Custom HTML Widget, requiring absolutely zero external dependencies.
 
+🚀 **[Try the Live Demo Here](https://mynameisedi.github.io/gezem-omer-muni/)**
+
+
+<img src="screenshots/preview.jpeg" width="900" alt="open-qa home page" />
+
 ## ✨ Features
 
 * **Smart Autocomplete:** A custom-built, fast autocomplete dropdown that highlights matched letters as the user types and filters results in real-time.
